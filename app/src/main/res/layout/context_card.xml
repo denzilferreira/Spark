@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:padding="10dp"
+    android:id="@+id/spark_card">
+
+    <ImageView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/spark_icon"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentLeft="true"
+        android:src="@drawable/ic_launcher" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="Parkinson"
+        android:id="@+id/textView"
+        android:layout_alignTop="@+id/spark_icon"
+        android:layout_toEndOf="@+id/spark_icon"
+        android:layout_toRightOf="@+id/spark_icon"
+        android:layout_marginLeft="5dp"
+        android:textColor="#000" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:text="Last check:"
+        android:id="@+id/spark_last_check"
+        android:layout_alignBottom="@+id/spark_icon"
+        android:layout_toEndOf="@+id/spark_icon"
+        android:layout_toRightOf="@+id/spark_icon"
+        android:layout_marginLeft="5dp"
+        android:textColor="#000" />
+
+</RelativeLayout>

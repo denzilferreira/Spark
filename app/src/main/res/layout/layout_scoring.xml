@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical" android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:id="@+id/scoring"
+    android:background="#000">
+
+    <RadioGroup
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/ratings"
+        android:layout_centerHorizontal="true">
+        <RadioButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0 - Normal"
+            android:id="@+id/normal"
+            android:textSize="30dp"
+            android:textColor="#FFF" />
+
+        <RadioButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="1 - Slight"
+            android:id="@+id/slight"
+            android:textSize="30dp"
+            android:textColor="#FFF" />
+        <RadioButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="2 - Mild"
+            android:id="@+id/mild"
+            android:textSize="30dp"
+            android:textColor="#FFF" />
+        <RadioButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="3 - Moderate"
+            android:id="@+id/moderate"
+            android:textSize="30dp"
+            android:textColor="#FFF" />
+        <RadioButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="4 - Severe"
+            android:id="@+id/severe"
+            android:textSize="30dp"
+            android:textColor="#FFF" />
+    </RadioGroup>
+</RelativeLayout>
