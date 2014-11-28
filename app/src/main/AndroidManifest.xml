@@ -40,7 +40,8 @@
             </intent-filter>
         </receiver>
 
-        <service android:name="com.aware.Wear_Sync" android:enabled="true" tools:replace="android:enabled"></service>
+        <!--<service android:name="com.aware.Wear_Sync" android:enabled="true" tools:replace="android:enabled"></service>-->
+        <!--<service android:name="com.aware.Wear_Sync$Wear_Bg" android:enabled="true" tools:replace="android:enabled"></service>-->
 
         <activity android:name="com.aware.plugin.spark.Settings" android:exported="true"></activity>
     </application>

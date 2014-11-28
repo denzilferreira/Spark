@@ -26,6 +26,7 @@ import android.widget.TextView;
 import com.aware.Accelerometer;
 import com.aware.Aware;
 import com.aware.Aware_Preferences;
+import com.aware.Wear_Sync;
 import com.aware.providers.Accelerometer_Provider;
 import com.aware.providers.Battery_Provider;
 import com.google.android.gms.common.ConnectionResult;
@@ -45,12 +46,12 @@ public class Spark extends Activity {
     public static final String EXTRA_SETTING = "setting";
     public static final String EXTRA_VALUE = "value";
 
-    private GoogleApiClient googleClient;
-    private Node peer;
+    private static GoogleApiClient googleClient;
+    private static Node peer;
 
     public static final String TAG = "AWARE::Spark";
 
-    private static final int WATCH_SAMPLING = 0;
+    private static final int WATCH_SAMPLING = 20000;
 
     private static long start_task = 0;
     private static Context sContext;
@@ -222,10 +223,9 @@ public class Spark extends Activity {
             setTaskLabel(settings.getInt("task",1));
 
             decrease_participant = (Button) findViewById(R.id.decrease_participant);
-            decrease_participant.setOnClickListener(new View.OnClickListener() {
+            decrease_participant.setOnLongClickListener( new View.OnLongClickListener() {
                 @Override
-                public void onClick(View v) {
-
+                public boolean onLongClick(View view) {
                     setParticipant(getApplicationContext(), settings.getInt("participant", 1)-1);
 
                     String message = "participant:" + settings.getInt("participant", 1);
@@ -241,14 +241,14 @@ public class Spark extends Activity {
                     setScore(getApplicationContext(), -1);
                     message = "score:" + settings.getInt("score", -1);
                     Wearable.MessageApi.sendMessage(googleClient, peer.getId(), "/spark", message.getBytes());
+                    return true;
                 }
             });
 
             increase_participant = (Button) findViewById(R.id.increase_participant);
-            increase_participant.setOnClickListener(new View.OnClickListener() {
+            increase_participant.setOnLongClickListener(new View.OnLongClickListener() {
                 @Override
-                public void onClick(View v) {
-
+                public boolean onLongClick(View view) {
                     setParticipant(getApplicationContext(), settings.getInt("participant", 1)+1);
 
                     String message = "participant:" + settings.getInt("participant", 1);
@@ -264,6 +264,8 @@ public class Spark extends Activity {
                     setScore(getApplicationContext(), -1);
                     message = "score:" + settings.getInt("score", -1);
                     Wearable.MessageApi.sendMessage(googleClient, peer.getId(), "/spark", message.getBytes());
+
+                    return true;
                 }
             });
 
@@ -347,8 +349,6 @@ public class Spark extends Activity {
         //we are starting the experiment
         String message = "active:1";
         Wearable.MessageApi.sendMessage(googleClient, peer.getId(), "/spark", message.getBytes());
-
-        feedback(getApplicationContext());
 
         start_task = System.currentTimeMillis();
         timerTask.post(refreshTime);
@@ -484,9 +484,6 @@ public class Spark extends Activity {
         v.vibrate(1000);
     }
 
-    /**
-     * Interface command receiver. Depending on visible UI, different actions.
-     */
     public static class SparkListener extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -508,7 +505,6 @@ public class Spark extends Activity {
 
                         if( Aware.is_watch(context) ) {
                             watch_main.setBackgroundColor(Color.RED);
-                            feedback(context);
                             frequencyChecker.post(frequencyCheck);
                             startExperiment(context);
                         } else {
@@ -526,7 +522,6 @@ public class Spark extends Activity {
                         if( Aware.is_watch(context) ) {
                             watch_main.setBackgroundColor(Color.BLACK);
                             stopExperiment(context);
-                            feedback(context);
                             frequencyChecker.removeCallbacksAndMessages(null);
                             frequency.setText("0 Hz");
                         } else {
@@ -581,7 +576,7 @@ public class Spark extends Activity {
         ContentValues rowData = new ContentValues();
         rowData.put(Accelerometer_Provider.Accelerometer_Data.LABEL, settings.getInt("participant",1)+":"+settings.getInt("task",1) + ":" + settings.getInt("score",-1));
         int updated = c.getContentResolver().update(Accelerometer_Provider.Accelerometer_Data.CONTENT_URI, rowData, Accelerometer_Provider.Accelerometer_Data.LABEL + " LIKE ''", null);
-        Log.d(Plugin.TAG, "Relabeled: " + updated + " rows with " + rowData.toString());
+        Log.d(Plugin.TAG, "Recovered: " + updated + " rows with " + rowData.toString());
 
         //When sampling ends, remove label
         removeLabel(c);

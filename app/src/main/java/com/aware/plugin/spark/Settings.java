@@ -37,7 +37,6 @@ public class Settings extends PreferenceActivity implements SharedPreferences.On
     private void syncPreferences() {
         CheckBoxPreference check = (CheckBoxPreference) findPreference(STATUS_PLUGIN_SPARK);
         check.setChecked(Aware.getSetting(this, STATUS_PLUGIN_SPARK).equals("true"));
-
         EditTextPreference frequency = (EditTextPreference) findPreference(FREQUENCY_SPARK);
         frequency.setSummary(Aware.getSetting(getApplicationContext(), FREQUENCY_SPARK) + " minutes");
     }
