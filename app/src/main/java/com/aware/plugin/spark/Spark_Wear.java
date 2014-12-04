@@ -54,5 +54,10 @@ public class Spark_Wear extends Wear_Service {
             applySetting.putExtra(Spark.EXTRA_VALUE, value);
             sendBroadcast(applySetting);
         }
+
+        if( messageEvent.getPath().equals("/flow") ) {
+            Intent unlock = new Intent(Spark.ACTION_AWARE_PLUGIN_SPARK_UNLOCK);
+            sendBroadcast(unlock);
+        }
     }
 }

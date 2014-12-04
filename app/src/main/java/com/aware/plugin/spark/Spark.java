@@ -2,11 +2,13 @@ package com.aware.plugin.spark;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Color;
@@ -22,11 +24,11 @@ import android.widget.Button;
 import android.widget.RadioGroup;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.aware.Accelerometer;
 import com.aware.Aware;
 import com.aware.Aware_Preferences;
-import com.aware.Wear_Sync;
 import com.aware.providers.Accelerometer_Provider;
 import com.aware.providers.Battery_Provider;
 import com.google.android.gms.common.ConnectionResult;
@@ -46,6 +48,8 @@ public class Spark extends Activity {
     public static final String EXTRA_SETTING = "setting";
     public static final String EXTRA_VALUE = "value";
 
+    public static final String ACTION_AWARE_PLUGIN_SPARK_UNLOCK = "ACTION_AWARE_PLUGIN_SPARK_UNLOCK";
+
     private static GoogleApiClient googleClient;
     private static Node peer;
 
@@ -55,6 +59,7 @@ public class Spark extends Activity {
 
     private static long start_task = 0;
     private static Context sContext;
+    private static String last_label = "";
 
     private static Handler timerTask = new Handler();
     private static final Runnable refreshTime = new Runnable() {
@@ -77,59 +82,6 @@ public class Spark extends Activity {
             frequencyChecker.postDelayed(frequencyCheck, 1000);
         }
     };
-
-    private AlertDialog setScore() {
-        LayoutInflater inflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
-        AlertDialog.Builder builder = new AlertDialog.Builder(Spark.this);
-
-        View scoring_layout = inflater.inflate(R.layout.layout_scoring, null);
-
-        final SharedPreferences.Editor editor = settings.edit();
-
-        RadioGroup ratings = (RadioGroup) scoring_layout.findViewById(R.id.ratings);
-        ratings.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(RadioGroup radioGroup, int i) {
-                switch(i) {
-                    case R.id.normal:
-                        editor.putInt("score", 0);
-                        editor.commit();
-                        break;
-                    case R.id.slight:
-                        editor.putInt("score", 1);
-                        editor.commit();
-                        break;
-                    case R.id.mild:
-                        editor.putInt("score", 2);
-                        editor.commit();
-                        break;
-                    case R.id.moderate:
-                        editor.putInt("score", 3);
-                        editor.commit();
-                        break;
-                    case R.id.severe:
-                        editor.putInt("score", 4);
-                        editor.commit();
-                        break;
-                }
-            }
-        });
-
-        builder.setTitle("Score");
-        builder.setView(scoring_layout);
-        builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                String message = "score:" + settings.getInt("score", -1);
-                Wearable.MessageApi.sendMessage(googleClient, peer.getId(), "/spark", message.getBytes());
-
-                stop();
-                dialog.dismiss();
-            }
-        });
-
-        return builder.create();
-    }
 
     @Override
     protected void onDestroy() {
@@ -335,6 +287,9 @@ public class Spark extends Activity {
                 watch_battery.setText("Watch battery: " + watch_battery_level.getInt(watch_battery_level.getColumnIndex(Battery_Provider.Battery_Data.LEVEL)) + "%");
             }
             if( watch_battery_level != null && ! watch_battery_level.isClosed() ) watch_battery_level.close();
+
+            IntentFilter filter = new IntentFilter(ACTION_AWARE_PLUGIN_SPARK_UNLOCK);
+            registerReceiver(unlockListener, filter);
         }
     }
 
@@ -342,7 +297,7 @@ public class Spark extends Activity {
         activator.setText("STOP");
         activator.setBackgroundColor(Color.RED);
 
-        SharedPreferences.Editor editor = settings.edit();
+        final SharedPreferences.Editor editor = settings.edit();
         editor.putInt("active", 1);
         editor.commit();
 
@@ -350,11 +305,86 @@ public class Spark extends Activity {
         String message = "active:1";
         Wearable.MessageApi.sendMessage(googleClient, peer.getId(), "/spark", message.getBytes());
 
+        setParticipant(this, settings.getInt("participant", 1));
+        message = "participant:" + settings.getInt("participant", 1);
+        Wearable.MessageApi.sendMessage(googleClient, peer.getId(), "/spark", message.getBytes());
+
+        setTask(this, settings.getInt("task", 1));
+        message = "task:" + settings.getInt("task", 1);
+        Wearable.MessageApi.sendMessage(googleClient, peer.getId(), "/spark", message.getBytes());
+
+        //start with score at -1
+        setScore(getApplicationContext(), -1);
+        message = "score:" + settings.getInt("score", -1);
+        Wearable.MessageApi.sendMessage(googleClient, peer.getId(), "/spark", message.getBytes());
+
         start_task = System.currentTimeMillis();
         timerTask.post(refreshTime);
 
-        AlertDialog dialog = setScore();
+        LayoutInflater inflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
+        AlertDialog.Builder builder = new AlertDialog.Builder(Spark.this);
+        View scoring_layout = inflater.inflate(R.layout.layout_scoring, null);
+        final RadioGroup ratings = (RadioGroup) scoring_layout.findViewById(R.id.ratings);
+        ratings.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(RadioGroup radioGroup, int i) {
+                switch(i) {
+                    case R.id.normal:
+                        editor.putInt("score", 0);
+                        editor.commit();
+                        break;
+                    case R.id.slight:
+                        editor.putInt("score", 1);
+                        editor.commit();
+                        break;
+                    case R.id.mild:
+                        editor.putInt("score", 2);
+                        editor.commit();
+                        break;
+                    case R.id.moderate:
+                        editor.putInt("score", 3);
+                        editor.commit();
+                        break;
+                    case R.id.severe:
+                        editor.putInt("score", 4);
+                        editor.commit();
+                        break;
+                }
+            }
+        });
+
+        builder.setTitle("Score");
+        builder.setView(scoring_layout);
+        builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface d, int which) {}
+        });
+        final AlertDialog dialog = builder.create();
         dialog.show();
+
+        final Button okButton = dialog.getButton(DialogInterface.BUTTON_POSITIVE);
+        okButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                String message = "score:" + settings.getInt("score", -1);
+                Wearable.MessageApi.sendMessage(googleClient, peer.getId(), "/spark", message.getBytes());
+
+                if( ratings.getCheckedRadioButtonId() == -1 ) {
+                    Toast.makeText(getApplicationContext(),"Please select your rating.", Toast.LENGTH_LONG).show();
+                    feedback(getApplicationContext());
+                    dialog.show();
+                } else {
+                    stop();
+                    dialog.dismiss();
+                }
+            }
+        });
+
+        Cursor watch_battery_level = getContentResolver().query(Battery_Provider.Battery_Data.CONTENT_URI, new String[]{Battery_Provider.Battery_Data.LEVEL}, Battery_Provider.Battery_Data.DEVICE_ID + " NOT LIKE '" + Aware.getSetting(this, Aware_Preferences.DEVICE_ID)+"'", null, Battery_Provider.Battery_Data.TIMESTAMP + " DESC LIMIT 1");
+        if( watch_battery_level != null && watch_battery_level.moveToFirst() ) {
+            watch_battery.setText("Watch battery: " + watch_battery_level.getInt(watch_battery_level.getColumnIndex(Battery_Provider.Battery_Data.LEVEL)) + "%");
+        }
+        if( watch_battery_level != null && ! watch_battery_level.isClosed() ) watch_battery_level.close();
     }
 
     private void stop() {
@@ -365,8 +395,17 @@ public class Spark extends Activity {
         editor.putInt("active", 0);
         editor.commit();
 
+        setParticipant(this, settings.getInt("participant", 1));
+        String message = "participant:" + settings.getInt("participant", 1);
+        Wearable.MessageApi.sendMessage(googleClient, peer.getId(), "/spark", message.getBytes());
+
+        setTask(this, settings.getInt("task", 1));
+        message = "task:" + settings.getInt("task", 1);
+        Wearable.MessageApi.sendMessage(googleClient, peer.getId(), "/spark", message.getBytes());
+
         //send to watch the label
-        String message = "score:"+settings.getInt("score",-1);
+        setScore(this, settings.getInt("score", -1));
+        message = "score:"+settings.getInt("score",-1);
         Wearable.MessageApi.sendMessage(googleClient, peer.getId(), "/spark", message.getBytes());
 
         //we are stopping the experiment
@@ -377,7 +416,18 @@ public class Spark extends Activity {
         timerTask.removeCallbacksAndMessages(null);
         timer.setText(DateUtils.formatElapsedTime(0));
 
-        feedback(getApplicationContext());
+        ui_locker = new ProgressDialog(Spark.this);
+        ui_locker.setTitle("Watch sync");
+        ui_locker.setMessage("Please wait...");
+        ui_locker.setCancelable(false);
+        ui_locker.setIndeterminate(true);
+        ui_locker.show();
+
+        Cursor watch_battery_level = getContentResolver().query(Battery_Provider.Battery_Data.CONTENT_URI, new String[]{Battery_Provider.Battery_Data.LEVEL}, Battery_Provider.Battery_Data.DEVICE_ID + " NOT LIKE '" + Aware.getSetting(this, Aware_Preferences.DEVICE_ID)+"'", null, Battery_Provider.Battery_Data.TIMESTAMP + " DESC LIMIT 1");
+        if( watch_battery_level != null && watch_battery_level.moveToFirst() ) {
+            watch_battery.setText("Watch battery: " + watch_battery_level.getInt(watch_battery_level.getColumnIndex(Battery_Provider.Battery_Data.LEVEL)) + "%");
+        }
+        if( watch_battery_level != null && ! watch_battery_level.isClosed() ) watch_battery_level.close();
     }
 
     private void setTaskLabel(int task) {
@@ -472,17 +522,21 @@ public class Spark extends Activity {
         }
     }
 
-    public static void updateLabel(Context c, String label) {
-        if( watch_label != null ) watch_label.setText(label);
-        Intent accelerometerLabel = new Intent(Accelerometer.ACTION_AWARE_ACCELEROMETER_LABEL);
-        accelerometerLabel.putExtra( Accelerometer.EXTRA_LABEL, label );
-        c.sendBroadcast(accelerometerLabel);
-    }
-
     public static void feedback(Context c) {
         Vibrator v = (Vibrator) c.getSystemService(Context.VIBRATOR_SERVICE);
         v.vibrate(1000);
     }
+
+    private static ProgressDialog ui_locker;
+    public static class UnlockListener extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if( intent.getAction().equals(ACTION_AWARE_PLUGIN_SPARK_UNLOCK) ) {
+                ui_locker.dismiss();
+            }
+        }
+    }
+    private static final UnlockListener unlockListener = new UnlockListener();
 
     public static class SparkListener extends BroadcastReceiver {
         @Override
@@ -490,12 +544,6 @@ public class Spark extends Activity {
             if( intent.getAction().equals(ACTION_AWARE_PLUGIN_SPARK) ) {
                 String setting = intent.getStringExtra(EXTRA_SETTING);
                 String value = intent.getStringExtra(EXTRA_VALUE);
-
-                Cursor watch_battery_level = context.getContentResolver().query(Battery_Provider.Battery_Data.CONTENT_URI, new String[]{Battery_Provider.Battery_Data.LEVEL}, Battery_Provider.Battery_Data.DEVICE_ID + " NOT LIKE '" + Aware.getSetting(context, Aware_Preferences.DEVICE_ID)+"'", null, Battery_Provider.Battery_Data.TIMESTAMP + " DESC LIMIT 1");
-                if( watch_battery_level != null && watch_battery_level.moveToFirst() ) {
-                    if( watch_battery != null ) watch_battery.setText("Watch battery: " + watch_battery_level.getInt(watch_battery_level.getColumnIndex(Battery_Provider.Battery_Data.LEVEL)) + "%");
-                }
-                if( watch_battery_level != null && ! watch_battery_level.isClosed() ) watch_battery_level.close();
 
                 if( setting.equals("active") ) {
                     if( value.equals("1") ) {
@@ -556,6 +604,12 @@ public class Spark extends Activity {
     }
 
     private static void startExperiment(Context c) {
+
+        ContentValues rowData = new ContentValues();
+        rowData.put(Accelerometer_Provider.Accelerometer_Data.LABEL, last_label);
+        int updated = c.getContentResolver().update(Accelerometer_Provider.Accelerometer_Data.CONTENT_URI, rowData, Accelerometer_Provider.Accelerometer_Data.LABEL + " LIKE '%-1'", null);
+        Log.d(Plugin.TAG, "Recovered previous before starting: " + updated + " rows with " + rowData.toString());
+
         Aware.setSetting(c, Aware_Preferences.STATUS_ACCELEROMETER, true);
         Aware.setSetting(c, Aware_Preferences.FREQUENCY_ACCELEROMETER, WATCH_SAMPLING);
 
@@ -573,13 +627,19 @@ public class Spark extends Activity {
         Intent apply = new Intent(Aware.ACTION_AWARE_REFRESH);
         c.sendBroadcast(apply);
 
-        ContentValues rowData = new ContentValues();
-        rowData.put(Accelerometer_Provider.Accelerometer_Data.LABEL, settings.getInt("participant",1)+":"+settings.getInt("task",1) + ":" + settings.getInt("score",-1));
-        int updated = c.getContentResolver().update(Accelerometer_Provider.Accelerometer_Data.CONTENT_URI, rowData, Accelerometer_Provider.Accelerometer_Data.LABEL + " LIKE ''", null);
-        Log.d(Plugin.TAG, "Recovered: " + updated + " rows with " + rowData.toString());
+        last_label = settings.getInt("participant",1)+":"+settings.getInt("task",1) + ":" + settings.getInt("score",-1);
 
-        //When sampling ends, remove label
+        ContentValues rowData = new ContentValues();
+        rowData.put(Accelerometer_Provider.Accelerometer_Data.LABEL, last_label);
+        int updated = c.getContentResolver().update(Accelerometer_Provider.Accelerometer_Data.CONTENT_URI, rowData, Accelerometer_Provider.Accelerometer_Data.LABEL + " LIKE '%-1'", null);
+        Log.d(Plugin.TAG, "Labeled: " + updated + " rows with " + rowData.toString());
+
+        //When sampling ends, remove label and set score to -1
         removeLabel(c);
+        setScore(c, -1);
+
+        //unlock phone now
+        Wearable.MessageApi.sendMessage(googleClient, peer.getId(), "/flow", null);
     }
 
     private static void removeLabel(Context c) {
@@ -607,5 +667,12 @@ public class Spark extends Activity {
         editor.putInt("task", value);
         editor.commit();
         updateLabel(c, settings.getInt("participant", 1) + ":"+ settings.getInt("task", 1) + ":" + settings.getInt("score", -1));
+    }
+
+    public static void updateLabel(Context c, String label) {
+        if( watch_label != null ) watch_label.setText(label);
+        Intent accelerometerLabel = new Intent(Accelerometer.ACTION_AWARE_ACCELEROMETER_LABEL);
+        accelerometerLabel.putExtra( Accelerometer.EXTRA_LABEL, label );
+        c.sendBroadcast(accelerometerLabel);
     }
 }
