@@ -1,18 +1,23 @@
 apply plugin: 'com.android.application'
 
+configurations {
+    wear
+}
+
 android {
     compileSdkVersion 21
-    buildToolsVersion "20.0.0"
+    buildToolsVersion "21.1.2"
     defaultPublishConfig "phoneRelease"
+    publishNonDefault true
 
     defaultConfig {
         applicationId "com.aware.plugin.spark"
-        minSdkVersion 10
-        targetSdkVersion 21
+        versionCode 2
+        versionName "1.0"
     }
     buildTypes {
         release {
-            runProguard false
+            minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
@@ -31,4 +36,6 @@ android {
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile project(':aware-core')
+
+    wearApp project(path: ':spark-wear', configuration: 'wearRelease')
 }

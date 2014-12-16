@@ -1,3 +1,4 @@
 include ':app'
+include ':spark-wear'
 include ':aware-core'
 project(':aware-core').projectDir = new File(settingsDir, '../aware-client/aware-core')
