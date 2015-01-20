@@ -4,8 +4,7 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/Spark.iml" filepath="$PROJECT_DIR$/Spark.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
-      <module fileurl="file://$PROJECT_DIR$/../aware-client/aware-core/aware-core.iml" filepath="$PROJECT_DIR$/../aware-client/aware-core/aware-core.iml" />
-      <module fileurl="file://$PROJECT_DIR$/app/spark-wear.iml" filepath="$PROJECT_DIR$/app/spark-wear.iml" />
+      <module fileurl="file://$PROJECT_DIR$/app/app-wear.iml" filepath="$PROJECT_DIR$/app/app-wear.iml" />
     </modules>
   </component>
 </project>
