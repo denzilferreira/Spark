@@ -675,4 +675,15 @@ public class Spark extends Activity {
         accelerometerLabel.putExtra( Accelerometer.EXTRA_LABEL, label );
         c.sendBroadcast(accelerometerLabel);
     }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        Cursor watch_battery_level = getContentResolver().query(Battery_Provider.Battery_Data.CONTENT_URI, new String[]{Battery_Provider.Battery_Data.LEVEL}, Battery_Provider.Battery_Data.DEVICE_ID + " NOT LIKE '" + Aware.getSetting(this, Aware_Preferences.DEVICE_ID)+"'", null, Battery_Provider.Battery_Data.TIMESTAMP + " DESC LIMIT 1");
+        if( watch_battery_level != null && watch_battery_level.moveToFirst() ) {
+            watch_battery.setText("Watch battery: " + watch_battery_level.getInt(watch_battery_level.getColumnIndex(Battery_Provider.Battery_Data.LEVEL)) + "%");
+        }
+        if( watch_battery_level != null && ! watch_battery_level.isClosed() ) watch_battery_level.close();
+    }
 }
